@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-var tzidWhitespace = regexp.MustCompile(`TZID:[ \t]+`)
+var tzidWhitespace = regexp.MustCompile(`(?m)^TZID:\s+`)
 
 // Attachment contains the fields and methods for
 // an email attachment
