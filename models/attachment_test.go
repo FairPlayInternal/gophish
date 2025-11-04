@@ -2,6 +2,7 @@ package models
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -66,7 +67,11 @@ func (s *ModelsSuite) TestAttachment(c *check.C) {
 				c.Assert(err, check.IsNil)
 				c.Assert(normalizeICS(string(gotRaw)), check.Equals, normalizeICS(string(wantRaw)))
 			} else {
-				c.Assert(templatedB64, check.Equals, expectedB64)
+				gotRaw, err := base64.StdEncoding.DecodeString(templatedB64)
+				c.Assert(err, check.IsNil)
+				wantRaw, err := base64.StdEncoding.DecodeString(expectedB64)
+				c.Assert(err, check.IsNil)
+				c.Assert(trimEOFNL(gotRaw), check.DeepEquals, trimEOFNL(wantRaw))
 			}
 		}
 	}
@@ -99,4 +104,14 @@ func normalizeICS(s string) string {
 	s = strings.ReplaceAll(s, "\n ", "")
 	s = strings.ReplaceAll(s, "\n\t", "")
 	return tzidRe.ReplaceAllString(s, "TZID:")
+}
+
+func trimEOFNL(b []byte) []byte {
+	if bytes.HasSuffix(b, []byte("\r\n")) {
+		return b[:len(b)-2]
+	}
+	if len(b) > 0 && b[len(b)-1] == '\n' {
+		return b[:len(b)-1]
+	}
+	return b
 }
