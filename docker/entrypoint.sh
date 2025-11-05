@@ -6,7 +6,7 @@ set -e
 : "${PHISH_HOST:=gophish.fairplay-digital.com}"
 
 # --- Ports inside the container ---
-: "${FRONT_PORT:=8080}"   # Nginx external (exposed to Azure)
+: "${FRONT_PORT:=80}"    # Nginx external (exposed to Azure)
 : "${ADMIN_PORT:=3333}"   # Gophish admin (internal)
 : "${PHISH_PORT:=8081}"   # Gophish phish (internal)
 
