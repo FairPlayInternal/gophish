@@ -1,61 +1,34 @@
 #!/usr/bin/env sh
-
 set -e
 
-# Treat unset variables as empty strings to avoid hard failures when optional
-# settings (such as MySQL credentials) are omitted in Azure App Service.
-ADMIN_HOST="${ADMIN_HOST:-admin.gophish.fairplay-digital.com}"
-PHISH_HOST="${PHISH_HOST:-gophish.fairplay-digital.com}"
+# --- Required hostnames (env or ACA app settings) ---
+: "${ADMIN_HOST:=admin.gophish.fairplay-digital.com}"
+: "${PHISH_HOST:=gophish.fairplay-digital.com}"
 
-# --- Ports inside the container ---
-FRONT_PORT="${FRONT_PORT:-80}"      # Nginx external (exposed via Azure)
-ADMIN_PORT="${ADMIN_PORT:-3333}"    # GoPhish admin internal
-PHISH_PORT="${PHISH_PORT:-8081}"    # GoPhish phishing page internal
+# --- Ports ---
+: "${FRONT_PORT:=80}"     # Nginx external
+: "${ADMIN_PORT:=3333}"   # GoPhish admin internal
+: "${PHISH_PORT:=8081}"   # GoPhish phish internal
 
-# --- TLS termination settings ---
-ADMIN_USE_TLS="${ADMIN_USE_TLS:-false}"
-PHISH_USE_TLS="${PHISH_USE_TLS:-false}"
+# --- TLS flags for GoPhish (TLS terminates at ACA/Frontdoor) ---
+: "${ADMIN_USE_TLS:=false}"
+: "${PHISH_USE_TLS:=false}"
 
-# --- Database logic: fallback to SQLite if MySQL not fully configured ---
+# --- DB: use MySQL only if fully configured; otherwise SQLite (GoPhish default) ---
 DB_DRIVER="sqlite3"
 DB_PATH="gophish.db"
-
-if [ -n "${DB_HOST:-}" ] && \
-   [ -n "${DB_USERNAME:-}" ] && \
-   [ -n "${DB_PASSWORD:-}" ] && \
-   [ -n "${DB_DATABASE:-}" ]; then
-  echo "MySQL configuration detected — using MySQL as database."
+if [ -n "${DB_HOST}" ] && [ -n "${DB_USERNAME}" ] && [ -n "${DB_PASSWORD}" ] && [ -n "${DB_DATABASE}" ]; then
+  echo "MySQL configuration detected — using MySQL."
   DB_DRIVER="mysql"
-  DB_PORT="${DB_PORT:-3306}"
-
-  # TLS is required for Azure Database for MySQL; allow override for other
-  # environments while keeping backwards compatibility with previous images.
-  DB_TLS_SETTING="${DB_TLS:-true}"
-  case "$(printf "%s" "${DB_TLS_SETTING}" | tr '[:upper:]' '[:lower:]')" in
-    false|0|no)
-      DB_TLS_QUERY="tls=false"
-      ;;
-    skip-verify)
-      DB_TLS_QUERY="tls=skip-verify"
-      ;;
-    *)
-      DB_TLS_QUERY="tls=true"
-      ;;
-  esac
-
-  DB_OPTIONS="${DB_OPTIONS:-charset=utf8mb4&parseTime=True&loc=UTC}"
-  DB_PATH="${DB_USERNAME}:${DB_PASSWORD}@tcp(${DB_HOST}:${DB_PORT})/${DB_DATABASE}?${DB_OPTIONS}&${DB_TLS_QUERY}"
+  : "${DB_PORT:=3306}"
+  DB_PATH="${DB_USERNAME}:${DB_PASSWORD}@(${DB_HOST}:${DB_PORT})/${DB_DATABASE}?charset=utf8mb4&parseTime=True&loc=UTC&tls=true"
 else
   echo "No MySQL configuration provided — falling back to SQLite (default)."
 fi
 
-# Optional: If using GoPhish version > v0.10.1, you can provide initial admin password
-# via environment variable GOPHISH_INITIAL_ADMIN_PASSWORD
-
-# --- Write config.json for GoPhish ---
+# --- Generate GoPhish config.json ---
 ADMIN_ORIGIN="https://${ADMIN_HOST}"
 PHISH_ORIGIN="https://${PHISH_HOST}"
-
 cat > /opt/gophish/config.json <<EOF_CONFIG
 {
   "admin_server": {
@@ -73,7 +46,7 @@ cat > /opt/gophish/config.json <<EOF_CONFIG
 }
 EOF_CONFIG
 
-# --- Nginx virtual host configuration ---
+# --- Generate Nginx vhost (host-based routing to admin/phish) ---
 mkdir -p /etc/nginx/conf.d
 cat > /etc/nginx/conf.d/gophish.conf <<EOF_NGINX
 server {
@@ -104,5 +77,30 @@ server {
 }
 EOF_NGINX
 
-# --- Launch supervisor to run Nginx + GoPhish ---
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+# --- Start processes without supervisord ---
+# Always run from app directory so gophish finds ./config.json
+cd /opt/gophish
+
+# Graceful shutdown handler
+_term() {
+  echo "Received TERM, stopping Nginx and GoPhish..."
+  kill -TERM "$GOPHISH_PID" 2>/dev/null || true
+  kill -TERM "$NGINX_PID" 2>/dev/null || true
+  wait
+}
+trap _term INT TERM
+
+# 1) start GoPhish in background (NO FLAGS; it auto-loads ./config.json)
+./gophish &
+GOPHISH_PID=$!
+
+# 2) start Nginx in foreground
+nginx -g "daemon off;" &
+NGINX_PID=$!
+
+# Wait for Nginx to exit; then stop GoPhish and exit with same code
+wait "$NGINX_PID"
+code=$?
+kill -TERM "$GOPHISH_PID" 2>/dev/null || true
+wait || true
+exit "$code"
