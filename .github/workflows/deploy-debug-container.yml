@@ -1,0 +1,50 @@
+name: Build & Deploy Debug Container to Azure
+
+on:
+  workflow_dispatch:
+
+env:
+  CONTAINER_APP_NAME: fairplay-gophish
+  ACR_LOGIN_SERVER: fpdcontainerregistry.azurecr.io
+  IMAGE_NAME: gophish
+  IMAGE_TAG: latest
+  RESOURCE_GROUP: FairPlay-GoPhish
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docker login to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build & push debug image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.debug
+          push: true
+          tags: |
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy debug container to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          imageToDeploy: ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          resourceGroup: ${{ env.RESOURCE_GROUP }}
+          containerAppName: ${{ env.CONTAINER_APP_NAME }}

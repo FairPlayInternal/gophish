@@ -1,0 +1,14 @@
+# Minimal debug container for Azure Container App validation
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY debug-app/package*.json ./
+RUN npm install --production && npm cache clean --force
+
+COPY debug-app/server.js ./
+
+ENV PORT=80
+EXPOSE 80
+
+CMD ["npm", "start"]
