@@ -3,18 +3,27 @@
 ### Build stage
 FROM golang:1.22-bullseye AS build
 WORKDIR /src
+
+# Install C compiler and sqlite dev libraries
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc libsqlite3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-# Build for linux/amd64 (App Service)
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o gophish
+
+# Build for linux/amd64 (App Service) with CGO enabled
+ENV CGO_ENABLED=1
+RUN GOOS=linux GOARCH=amd64 go build -o gophish
 
 ### Runtime stage
 FROM debian:stable-slim
 WORKDIR /opt/gophish
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates tzdata nginx supervisor && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates tzdata nginx supervisor libsqlite3-0 && \
     rm -rf /var/lib/apt/lists/* && \
     rm -f /etc/nginx/sites-enabled/default
 
