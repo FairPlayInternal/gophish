@@ -47,9 +47,9 @@ var Version = ""
 const ServerName = "IGNORE"
 
 // LoadConfig loads the configuration from the specified filepath
-func LoadConfig(filepath string) (*Config, error) {
+func LoadConfig(path string) (*Config, error) {
 	// Get the config file
-	configFile, err := ioutil.ReadFile(filepath)
+	configFile, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
