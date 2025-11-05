@@ -7,23 +7,29 @@ set -e
 
 # --- Ports inside the container ---
 : "${FRONT_PORT:=80}"    # Nginx external (exposed to Azure)
-: "${ADMIN_PORT:=3333}"   # Gophish admin (internal)
-: "${PHISH_PORT:=8081}"   # Gophish phish (internal)
+: "${ADMIN_PORT:=3333}"   # GoPhish admin (internal)
+: "${PHISH_PORT:=8081}"   # GoPhish phish (internal)
 
-# --- TLS terminates at Azure frontends; keep false in Gophish ---
+# --- TLS terminates at Azure front-ends; keep false in GoPhish unless you supply certs ---
 : "${ADMIN_USE_TLS:=false}"
 : "${PHISH_USE_TLS:=false}"
 
-# --- MySQL (required) ---
-: "${DB_HOST:?Set DB_HOST (e.g., sos-kinderdoerfer-gophish-server.mysql.database.azure.com)}"
-: "${DB_PORT:=3306}"
-: "${DB_USERNAME:?Set DB_USERNAME}"
-: "${DB_PASSWORD:?Set DB_PASSWORD}"
-: "${DB_DATABASE:?Set DB_DATABASE}"
+# --- Database logic: if MySQL vars provided, use MySQL, else fallback SQLite ---
+DB_DRIVER="sqlite3"
+DB_PATH="gophish.db"
 
-# Optional first-login password for > v0.10.1: GOPHISH_INITIAL_ADMIN_PASSWORD (env)
+if [ -n "${DB_HOST}" ] && [ -n "${DB_USERNAME}" ] && [ -n "${DB_PASSWORD}" ] && [ -n "${DB_DATABASE}" ]; then
+  echo "MySQL configuration detected — using MySQL as database."
+  DB_DRIVER="mysql"
+  : "${DB_PORT:=3306}"
+  DB_PATH="${DB_USERNAME}:${DB_PASSWORD}@(${DB_HOST}:${DB_PORT})/${DB_DATABASE}?charset=utf8mb4&parseTime=True&loc=UTC&tls=true"
+else
+  echo "No MySQL configuration provided — falling back to SQLite (default)."
+fi
 
-# --- Write Gophish config.json ---
+# Optional: Set initial admin password for GoPhish > v0.10.1 via env GOPHISH_INITIAL_ADMIN_PASSWORD
+
+# --- Write GoPhish config.json ---
 ADMIN_ORIGIN="https://${ADMIN_HOST}"
 PHISH_ORIGIN="https://${PHISH_HOST}"
 
@@ -39,8 +45,8 @@ cat > /opt/gophish/config.json <<EOF_CONFIG
     "use_tls": ${PHISH_USE_TLS},
     "trusted_origins": ["${PHISH_ORIGIN}"]
   },
-  "db_name": "mysql",
-  "db_path": "${DB_USERNAME}:${DB_PASSWORD}@(${DB_HOST}:${DB_PORT})/${DB_DATABASE}?charset=utf8mb4&parseTime=True&loc=UTC&tls=true"
+  "db_name": "${DB_DRIVER}",
+  "db_path": "${DB_PATH}"
 }
 EOF_CONFIG
 
@@ -75,4 +81,5 @@ server {
 }
 EOF_NGINX
 
+# Launch supervisord
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
