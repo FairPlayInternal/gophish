@@ -3,11 +3,19 @@
 ### Build stage
 FROM golang:1.22-bullseye AS build
 WORKDIR /src
+
+# Install gcc + sqlite3 dev libs for CGO support
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc libsqlite3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-# Build for linux/amd64 (App Service)
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o gophish
+
+# Build for linux/amd64 (App Service) with CGO enabled
+ENV CGO_ENABLED=1
+RUN GOOS=linux GOARCH=amd64 go build -o gophish
 
 ### Runtime stage
 FROM debian:stable-slim
