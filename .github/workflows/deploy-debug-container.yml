@@ -1,6 +1,9 @@
 name: Build & Deploy Debug Container to Azure
 
 on:
+  push:
+    branches:
+      - '**'
   workflow_dispatch:
 
 env:
