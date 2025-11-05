@@ -4,7 +4,7 @@
 FROM golang:1.22-bullseye AS build
 WORKDIR /src
 
-# Install C compiler and sqlite dev libraries
+# Install gcc + sqlite3 dev libs for CGO support
 RUN apt-get update && \
     apt-get install -y --no-install-recommends gcc libsqlite3-dev && \
     rm -rf /var/lib/apt/lists/*
