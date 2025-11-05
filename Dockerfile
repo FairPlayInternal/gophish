@@ -22,7 +22,8 @@ FROM debian:stable-slim
 WORKDIR /opt/gophish
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates tzdata nginx supervisor && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates tzdata nginx supervisor libsqlite3-0 && \
     rm -rf /var/lib/apt/lists/* && \
     rm -f /etc/nginx/sites-enabled/default
 
