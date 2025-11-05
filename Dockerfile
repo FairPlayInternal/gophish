@@ -53,7 +53,8 @@ RUN chown -R app:app /opt/gophish && \
     mkdir -p /etc/nginx/conf.d && \
     chown -R app:app /etc/nginx /var/lib/nginx /var/log/nginx && \
     chmod +x /entrypoint.sh && \
-    setcap 'cap_net_bind_service=+ep' /opt/gophish/gophish
+    setcap 'cap_net_bind_service=+ep' /opt/gophish/gophish && \
+    setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
 
 USER app
 
