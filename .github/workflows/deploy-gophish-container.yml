@@ -9,7 +9,7 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: sos-kinderdoerfer-gophish
-  ACR_LOGIN_SERVER: fpdcontainers.azurecr.io
+  ACR_LOGIN_SERVER: fpdcontainerregistry.azurecr.io
   IMAGE_NAME: gophish
   IMAGE_TAG: production
 
