@@ -1,20 +1,20 @@
 #!/usr/bin/env sh
 set -e
 
-# --- Required hostnames (set in App Settings) ---
+# --- Required hostnames (set via App Settings or env vars) ---
 : "${ADMIN_HOST:=admin.gophish.fairplay-digital.com}"
 : "${PHISH_HOST:=gophish.fairplay-digital.com}"
 
 # --- Ports inside the container ---
-: "${FRONT_PORT:=80}"    # Nginx external (exposed to Azure)
-: "${ADMIN_PORT:=3333}"   # GoPhish admin (internal)
-: "${PHISH_PORT:=8081}"   # GoPhish phish (internal)
+: "${FRONT_PORT:=80}"    # Nginx external (exposed via Azure)
+: "${ADMIN_PORT:=3333}"  # GoPhish admin internal
+: "${PHISH_PORT:=8081}"  # GoPhish phishing page internal
 
-# --- TLS terminates at Azure front-ends; keep false in GoPhish unless you supply certs ---
+# --- TLS termination settings ---
 : "${ADMIN_USE_TLS:=false}"
 : "${PHISH_USE_TLS:=false}"
 
-# --- Database logic: if MySQL vars provided, use MySQL, else fallback SQLite ---
+# --- Database logic: fallback to SQLite if MySQL not fully configured ---
 DB_DRIVER="sqlite3"
 DB_PATH="gophish.db"
 
@@ -27,9 +27,10 @@ else
   echo "No MySQL configuration provided — falling back to SQLite (default)."
 fi
 
-# Optional: Set initial admin password for GoPhish > v0.10.1 via env GOPHISH_INITIAL_ADMIN_PASSWORD
+# Optional: If using GoPhish version > v0.10.1, you can provide initial admin password
+# via environment variable GOPHISH_INITIAL_ADMIN_PASSWORD
 
-# --- Write GoPhish config.json ---
+# --- Write config.json for GoPhish ---
 ADMIN_ORIGIN="https://${ADMIN_HOST}"
 PHISH_ORIGIN="https://${PHISH_HOST}"
 
@@ -50,7 +51,7 @@ cat > /opt/gophish/config.json <<EOF_CONFIG
 }
 EOF_CONFIG
 
-# --- Nginx vhosts (host-based routing to the two internal ports) ---
+# --- Nginx virtual host configuration ---
 mkdir -p /etc/nginx/conf.d
 cat > /etc/nginx/conf.d/gophish.conf <<EOF_NGINX
 server {
@@ -81,5 +82,5 @@ server {
 }
 EOF_NGINX
 
-# Launch supervisord
+# --- Launch supervisor to run Nginx + GoPhish ---
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
