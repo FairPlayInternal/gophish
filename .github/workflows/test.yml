@@ -1,3 +1,17 @@
+name: Go Tests (disabled)
+
+on:
+  push:
+    branches:
+      - DO_NOT_RUN_TESTS
+
+jobs:
+  noop:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Go test workflow disabled for debug session"
+
 # name: Go Tests
 #
 # on:

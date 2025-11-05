@@ -1,3 +1,17 @@
+name: Build & Deploy Gophish (disabled)
+
+on:
+  push:
+    branches:
+      - DO_NOT_DEPLOY_GOPHISH
+
+jobs:
+  noop:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Gophish deploy workflow disabled for debug session"
+
 # name: Build & Deploy Gophish (with Nginx front) to Azure
 #
 # on:
