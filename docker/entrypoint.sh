@@ -78,6 +78,9 @@ server {
 EOF_NGINX
 
 # --- Start processes without supervisord ---
+# Always run from app directory so gophish finds ./config.json
+cd /opt/gophish
+
 # Graceful shutdown handler
 _term() {
   echo "Received TERM, stopping Nginx and GoPhish..."
@@ -87,11 +90,11 @@ _term() {
 }
 trap _term INT TERM
 
-# 1) start GoPhish in background
-/opt/gophish/gophish -config /opt/gophish/config.json &
+# 1) start GoPhish in background (NO FLAGS; it auto-loads ./config.json)
+./gophish &
 GOPHISH_PID=$!
 
-# 2) start Nginx in foreground (preferred to keep it as the monitored process)
+# 2) start Nginx in foreground
 nginx -g "daemon off;" &
 NGINX_PID=$!
 

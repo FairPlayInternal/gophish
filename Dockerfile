@@ -35,30 +35,32 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     rm -f /etc/nginx/sites-enabled/default
 
-# make nginx runtime dirs and allow 'app' to write them + conf.d
-RUN mkdir -p /var/cache/nginx /var/log/nginx /run/nginx && \
-    chown -R app:app /var/cache/nginx /var/log/nginx /run/nginx && \
+# create nginx runtime + temp dirs and make them writable by 'app'
+RUN mkdir -p /var/cache/nginx /var/log/nginx /run/nginx \
+    /var/lib/nginx/body /var/lib/nginx/fastcgi /var/lib/nginx/proxy \
+    /var/lib/nginx/scgi /var/lib/nginx/uwsgi && \
+    chown -R app:app /var/cache/nginx /var/log/nginx /run/nginx /var/lib/nginx && \
     chown -R app:app /etc/nginx/conf.d
 
 # copy built app + static assets
 COPY --from=build-go /src/ /opt/gophish/
-COPY --from=build-js  /build/static/js/dist/  ./static/js/dist/
-COPY --from=build-js  /build/static/css/dist/ ./static/css/dist/
+COPY --from=build-js  /build/static/js/dist/  /opt/gophish/static/js/dist/
+COPY --from=build-js  /build/static/css/dist/ /opt/gophish/static/css/dist/
 
 # entrypoint
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# allow nginx (running as 'app') to bind to :80
-RUN sed -i 's/^\s*user\s\+\S\+;/user app;/' /etc/nginx/nginx.conf || true && \
+# run nginx as non-root: comment 'user' directive and allow bind(:80)
+RUN sed -i 's/^\s*user\s\+\S\+;/# user disabled for non-root container;/' /etc/nginx/nginx.conf || true && \
     setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
 
-# ensure app owns app dir (for config.json + gophish.db)
+# ensure 'app' owns the app dir (for config.json + gophish.db)
 RUN chown -R app:app /opt/gophish
 
 USER app
 
-# App Service / ACA: expose 80 (Nginx)
+# ACA ingress targets port 80 (nginx)
 EXPOSE 80
 ENV FRONT_PORT=80 ADMIN_PORT=3333 PHISH_PORT=8081 ADMIN_USE_TLS=false PHISH_USE_TLS=false
 
