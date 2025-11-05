@@ -60,8 +60,8 @@ RUN chown -R app:app /opt/gophish
 
 USER app
 
-# ACA ingress targets port 80 (nginx)
-EXPOSE 80
-ENV FRONT_PORT=80 ADMIN_PORT=3333 PHISH_PORT=8081 ADMIN_USE_TLS=false PHISH_USE_TLS=false
+# ACA ingress targets port 8080 (nginx)
+EXPOSE 8080
+ENV FRONT_PORT=8080 ADMIN_PORT=3333 PHISH_PORT=8081 ADMIN_USE_TLS=false PHISH_USE_TLS=false
 
 ENTRYPOINT ["/entrypoint.sh"]
