@@ -35,8 +35,10 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     rm -f /etc/nginx/sites-enabled/default
 
-# allow the app user to write nginx conf generated at runtime
-RUN chown app:app /etc/nginx/conf.d && chmod 755 /etc/nginx/conf.d
+# make nginx runtime dirs and allow 'app' to write them + conf.d
+RUN mkdir -p /var/cache/nginx /var/log/nginx /run/nginx && \
+    chown -R app:app /var/cache/nginx /var/log/nginx /run/nginx && \
+    chown -R app:app /etc/nginx/conf.d
 
 # copy built app + static assets
 COPY --from=build-go /src/ /opt/gophish/
@@ -45,12 +47,14 @@ COPY --from=build-js  /build/static/css/dist/ ./static/css/dist/
 
 # entrypoint
 COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh \
- && setcap 'cap_net_bind_service=+ep' /opt/gophish/gophish
+RUN chmod +x /entrypoint.sh
 
-RUN chown -R app:app /opt/gophish && \
-    chown -R app:app /etc/nginx/conf.d
-RUN chown -R app:app /var/cache/nginx /var/log/nginx /run
+# allow nginx (running as 'app') to bind to :80
+RUN sed -i 's/^\s*user\s\+\S\+;/user app;/' /etc/nginx/nginx.conf || true && \
+    setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
+
+# ensure app owns app dir (for config.json + gophish.db)
+RUN chown -R app:app /opt/gophish
 
 USER app
 
