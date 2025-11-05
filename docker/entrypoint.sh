@@ -10,6 +10,9 @@ set -e
 : "${ADMIN_PORT:=3333}"   # GoPhish admin internal
 : "${PHISH_PORT:=8081}"   # GoPhish phish internal
 
+# --- Misc configuration ---
+: "${CONTACT_ADDRESS:=security@example.com}"
+
 # --- TLS flags for GoPhish (TLS terminates at ACA/Frontdoor) ---
 : "${ADMIN_USE_TLS:=false}"
 : "${PHISH_USE_TLS:=false}"
@@ -42,7 +45,8 @@ cat > /opt/gophish/config.json <<EOF_CONFIG
     "trusted_origins": ["${PHISH_ORIGIN}"]
   },
   "db_name": "${DB_DRIVER}",
-  "db_path": "${DB_PATH}"
+  "db_path": "${DB_PATH}",
+  "contact_address": "${CONTACT_ADDRESS}"
 }
 EOF_CONFIG
 
@@ -95,7 +99,7 @@ trap _term INT TERM
 GOPHISH_PID=$!
 
 # 2) start Nginx in foreground
-nginx -g "daemon off;" &
+nginx -g "pid /tmp/nginx.pid; daemon off;" &
 NGINX_PID=$!
 
 # Wait for Nginx to exit; then stop GoPhish and exit with same code
