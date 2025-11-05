@@ -51,8 +51,9 @@ COPY --from=build-js  /build/static/css/dist/ /opt/gophish/static/css/dist/
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# run nginx as non-root: comment 'user' directive and allow bind(:80)
-RUN sed -i 's/^\s*user\s\+\S\+;/# user disabled for non-root container;/' /etc/nginx/nginx.conf || true && \
+# run nginx as non-root: set writable pid path, comment 'user' directive, and allow bind(:80)
+RUN sed -ri 's|^\s*pid\s+[^;]+;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf || true && \
+    sed -i 's/^\s*user\s\+\S\+;/# user disabled for non-root container;/' /etc/nginx/nginx.conf || true && \
     setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
 
 # ensure 'app' owns the app dir (for config.json + gophish.db)

@@ -99,7 +99,7 @@ trap _term INT TERM
 GOPHISH_PID=$!
 
 # 2) start Nginx in foreground
-nginx -g "pid /tmp/nginx.pid; daemon off;" &
+nginx -g "daemon off;" &
 NGINX_PID=$!
 
 # Wait for Nginx to exit; then stop GoPhish and exit with same code
