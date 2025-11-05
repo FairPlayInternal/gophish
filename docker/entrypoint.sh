@@ -6,7 +6,7 @@ set -e
 : "${PHISH_HOST:=gophish.fairplay-digital.com}"
 
 # --- Ports ---
-: "${FRONT_PORT:=80}"     # Nginx external
+: "${FRONT_PORT:=8080}"   # Nginx external
 : "${ADMIN_PORT:=3333}"   # GoPhish admin internal
 : "${PHISH_PORT:=8081}"   # GoPhish phish internal
 
