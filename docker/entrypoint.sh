@@ -2,8 +2,8 @@
 set -e
 
 # --- Required hostnames (set in App Settings) ---
-: "${ADMIN_HOST:?Set ADMIN_HOST (e.g., admin.yourdomain.tld)}"
-: "${PHISH_HOST:?Set PHISH_HOST (e.g., phish.yourdomain.tld)}"
+: "${ADMIN_HOST:=admin.gophish.fairplay-digital.com}"
+: "${PHISH_HOST:=gophish.fairplay-digital.com}"
 
 # --- Ports inside the container ---
 : "${FRONT_PORT:=8080}"   # Nginx external (exposed to Azure)
@@ -24,17 +24,20 @@ set -e
 # Optional first-login password for > v0.10.1: GOPHISH_INITIAL_ADMIN_PASSWORD (env)
 
 # --- Write Gophish config.json ---
+ADMIN_ORIGIN="https://${ADMIN_HOST}"
+PHISH_ORIGIN="https://${PHISH_HOST}"
+
 cat > /opt/gophish/config.json <<EOF_CONFIG
 {
   "admin_server": {
     "listen_url": "0.0.0.0:${ADMIN_PORT}",
     "use_tls": ${ADMIN_USE_TLS},
-    "trusted_origins": ["${ADMIN_HOST}"]
+    "trusted_origins": ["${ADMIN_ORIGIN}"]
   },
   "phish_server": {
     "listen_url": "0.0.0.0:${PHISH_PORT}",
     "use_tls": ${PHISH_USE_TLS},
-    "trusted_origins": ["${PHISH_HOST}"]
+    "trusted_origins": ["${PHISH_ORIGIN}"]
   },
   "db_name": "mysql",
   "db_path": "${DB_USERNAME}:${DB_PASSWORD}@(${DB_HOST}:${DB_PORT})/${DB_DATABASE}?charset=utf8mb4&parseTime=True&loc=UTC&tls=true"
@@ -50,8 +53,11 @@ server {
   location / {
     proxy_pass http://127.0.0.1:${PHISH_PORT};
     proxy_set_header Host \$host;
+    proxy_set_header X-Forwarded-Host \$host;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-Port 443;
+    proxy_set_header X-Real-IP \$remote_addr;
   }
 }
 server {
@@ -60,8 +66,11 @@ server {
   location / {
     proxy_pass http://127.0.0.1:${ADMIN_PORT};
     proxy_set_header Host \$host;
+    proxy_set_header X-Forwarded-Host \$host;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-Port 443;
+    proxy_set_header X-Real-IP \$remote_addr;
   }
 }
 EOF_NGINX
