@@ -48,6 +48,10 @@ COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh \
  && setcap 'cap_net_bind_service=+ep' /opt/gophish/gophish
 
+RUN chown -R app:app /opt/gophish && \
+    chown -R app:app /etc/nginx/conf.d
+RUN chown -R app:app /var/cache/nginx /var/log/nginx /run
+
 USER app
 
 # App Service / ACA: expose 80 (Nginx)
