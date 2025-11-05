@@ -33,8 +33,8 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# App Service exposes ONE HTTP port; we use 8080
-EXPOSE 8080
-ENV FRONT_PORT=8080 ADMIN_PORT=3333 PHISH_PORT=8081 ADMIN_USE_TLS=false PHISH_USE_TLS=false
+# App Service expects the container to listen on port 80 by default
+EXPOSE 80
+ENV FRONT_PORT=80 ADMIN_PORT=3333 PHISH_PORT=8081 ADMIN_USE_TLS=false PHISH_USE_TLS=false
 
 ENTRYPOINT ["/entrypoint.sh"]
