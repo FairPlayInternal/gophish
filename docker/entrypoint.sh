@@ -31,35 +31,23 @@ fi
 
 # --- Generate GoPhish config.json ---
 ADMIN_ORIGIN="https://${ADMIN_HOST}"
+ADMIN_ORIGIN_443="https://${ADMIN_HOST}:443"
 PHISH_ORIGIN="https://${PHISH_HOST}"
-
-# Include both the bare host and the explicit :443 variant when no port is
-# provided. Azure Front Door and similar proxies may preserve the :443 suffix in
-# the Referer header, so we make sure GoPhish trusts either form.
-ADMIN_TRUSTED_ORIGINS="\"${ADMIN_ORIGIN}\""
-if ! printf '%s' "${ADMIN_HOST}" | grep -q ':'; then
-  ADMIN_TRUSTED_ORIGINS="${ADMIN_TRUSTED_ORIGINS},\"${ADMIN_ORIGIN}:443\""
-fi
-
-PHISH_TRUSTED_ORIGINS="\"${PHISH_ORIGIN}\""
-if ! printf '%s' "${PHISH_HOST}" | grep -q ':'; then
-  PHISH_TRUSTED_ORIGINS="${PHISH_TRUSTED_ORIGINS},\"${PHISH_ORIGIN}:443\""
-fi
 cat > /opt/gophish/config.json <<EOF_CONFIG
 {
   "admin_server": {
     "listen_url": "0.0.0.0:${ADMIN_PORT}",
     "use_tls": ${ADMIN_USE_TLS},
-    "trusted_origins": [${ADMIN_TRUSTED_ORIGINS}]
+    "trusted_origins": ["${ADMIN_ORIGIN}", "${ADMIN_ORIGIN_443}"]
   },
   "phish_server": {
     "listen_url": "0.0.0.0:${PHISH_PORT}",
     "use_tls": ${PHISH_USE_TLS},
-    "trusted_origins": [${PHISH_TRUSTED_ORIGINS}]
+    "trusted_origins": ["${PHISH_ORIGIN}"]
   },
   "db_name": "${DB_DRIVER}",
-  "db_path": "${DB_PATH}",
-  "contact_address": "${CONTACT_ADDRESS}"
+  "db_path": "${DB_PATH}"
+  $( [ -n "${CONTACT_ADDRESS}" ] && printf ',\n  "contact_address": "%s"' "${CONTACT_ADDRESS}" )
 }
 EOF_CONFIG
 
@@ -76,6 +64,8 @@ server {
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto https;
     proxy_set_header X-Forwarded-Port 443;
+    proxy_set_header Origin \$http_origin;
+    proxy_set_header Referer \$http_referer;
     proxy_set_header X-Real-IP \$remote_addr;
   }
 }
@@ -89,6 +79,8 @@ server {
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto https;
     proxy_set_header X-Forwarded-Port 443;
+    proxy_set_header Origin \$http_origin;
+    proxy_set_header Referer \$http_referer;
     proxy_set_header X-Real-IP \$remote_addr;
   }
 }
