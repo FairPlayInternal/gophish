@@ -32,17 +32,30 @@ fi
 # --- Generate GoPhish config.json ---
 ADMIN_ORIGIN="https://${ADMIN_HOST}"
 PHISH_ORIGIN="https://${PHISH_HOST}"
+
+# Include both the bare host and the explicit :443 variant when no port is
+# provided. Azure Front Door and similar proxies may preserve the :443 suffix in
+# the Referer header, so we make sure GoPhish trusts either form.
+ADMIN_TRUSTED_ORIGINS="\"${ADMIN_ORIGIN}\""
+if ! printf '%s' "${ADMIN_HOST}" | grep -q ':'; then
+  ADMIN_TRUSTED_ORIGINS="${ADMIN_TRUSTED_ORIGINS},\"${ADMIN_ORIGIN}:443\""
+fi
+
+PHISH_TRUSTED_ORIGINS="\"${PHISH_ORIGIN}\""
+if ! printf '%s' "${PHISH_HOST}" | grep -q ':'; then
+  PHISH_TRUSTED_ORIGINS="${PHISH_TRUSTED_ORIGINS},\"${PHISH_ORIGIN}:443\""
+fi
 cat > /opt/gophish/config.json <<EOF_CONFIG
 {
   "admin_server": {
     "listen_url": "0.0.0.0:${ADMIN_PORT}",
     "use_tls": ${ADMIN_USE_TLS},
-    "trusted_origins": ["${ADMIN_ORIGIN}"]
+    "trusted_origins": [${ADMIN_TRUSTED_ORIGINS}]
   },
   "phish_server": {
     "listen_url": "0.0.0.0:${PHISH_PORT}",
     "use_tls": ${PHISH_USE_TLS},
-    "trusted_origins": ["${PHISH_ORIGIN}"]
+    "trusted_origins": [${PHISH_TRUSTED_ORIGINS}]
   },
   "db_name": "${DB_DRIVER}",
   "db_path": "${DB_PATH}",
