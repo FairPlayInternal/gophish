@@ -30,24 +30,34 @@ else
 fi
 
 # --- Generate GoPhish config.json ---
-ADMIN_ORIGIN="https://${ADMIN_HOST}"
-ADMIN_ORIGIN_443="https://${ADMIN_HOST}:443"
-PHISH_ORIGIN="https://${PHISH_HOST}"
+ADMIN_ORIGIN_SCHEME="https"
+ADMIN_HOST_ONLY="${ADMIN_HOST}"
+ADMIN_HOST_443="${ADMIN_HOST}:443"
+ADMIN_URL="${ADMIN_ORIGIN_SCHEME}://${ADMIN_HOST_ONLY}"
+ADMIN_URL_443="${ADMIN_ORIGIN_SCHEME}://${ADMIN_HOST_443}"
+
+PHISH_URL="https://${PHISH_HOST}"
 cat > /opt/gophish/config.json <<EOF_CONFIG
 {
   "admin_server": {
     "listen_url": "0.0.0.0:${ADMIN_PORT}",
     "use_tls": ${ADMIN_USE_TLS},
-    "trusted_origins": ["${ADMIN_ORIGIN}", "${ADMIN_ORIGIN_443}"]
+    "trusted_origins": [
+      "${ADMIN_HOST_ONLY}",
+      "${ADMIN_HOST_443}",
+      "${ADMIN_URL}",
+      "${ADMIN_URL_443}"
+    ]
   },
   "phish_server": {
     "listen_url": "0.0.0.0:${PHISH_PORT}",
     "use_tls": ${PHISH_USE_TLS},
-    "trusted_origins": ["${PHISH_ORIGIN}"]
+    "trusted_origins": ["${PHISH_URL}"]
   },
   "db_name": "${DB_DRIVER}",
-  "db_path": "${DB_PATH}"
-  $( [ -n "${CONTACT_ADDRESS}" ] && printf ',\n  "contact_address": "%s"' "${CONTACT_ADDRESS}" )
+  "db_path": "${DB_PATH}"$(
+    [ -n "${CONTACT_ADDRESS}" ] && printf ',\n  "contact_address": "%s"' "${CONTACT_ADDRESS}"
+  )
 }
 EOF_CONFIG
 
