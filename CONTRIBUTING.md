@@ -4,7 +4,7 @@ Thank you for your interest in contributing to gophish! It is our goal to make t
 
 This guide details how to contribute to gophish in a way that is efficient for everyone involved.
 
-Gophish currently only comes in one flavor, gophish Community Edition (CE), which is our free and open source edition. In the future, we reserve the right to create an Enterprise Edition, though we're currently pouring our effort into create a rock-solid open source platform. This document will be updated if an EE edition is created.
+Gophish currently only comes in one flavor, gophish Community Edition (CE), which is our free and open source edition. In the future, we reserve the right to create an Enterprise Edition, though we're currently pouring our effort into create a rock-solid open source platform. This document will be updated if an EE edition is .
 
 ## Contributor license agreement
 
@@ -39,6 +39,7 @@ look for [issues with the label `contributor-friendly`][contributor-friendly]. T
 will be of reasonable size and challenge, as well as not requiring a ton of internal plumbing on the gophish source code.
 
 ## Have Questions?
+
 If you ever have questions, please don't hesitate to reach out to us directly at `support@getgophish.com`
 
 [contributor-friendly]: https://github.com/gophish/gophish/labels/contributor-friendly
