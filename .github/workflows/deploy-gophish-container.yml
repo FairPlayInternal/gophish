@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - master
-      - no-supervisord
-      - iheb/feature/update-lastlogin-to-nullable-type/2025-11-07
   workflow_dispatch:
 
 env:
