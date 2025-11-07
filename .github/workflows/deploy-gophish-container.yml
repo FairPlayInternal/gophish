@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - no-supervisord
+      - update-lastlogin-to-nullable-type/2025-11-07
   workflow_dispatch:
 
 env:
